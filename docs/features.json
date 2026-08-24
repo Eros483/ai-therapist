@@ -3,12 +3,12 @@
   "last_updated": "2026-08-24",
   "summary": {
     "total": 15,
-    "completed": 1,
+    "completed": 2,
     "in_progress": 0,
-    "planned": 14,
-    "tests_passing": 6,
+    "planned": 13,
+    "tests_passing": 13,
     "tests_failing": 0,
-    "tests_missing": 14
+    "tests_missing": 13
   },
   "features": [
     {
@@ -44,30 +44,30 @@
       "id": "F002",
       "name": "Graph state schemas",
       "description": "SessionState and CourseState LangGraph TypedDicts in app/graph/state.py, per implementation.md §5.1 and §4.1. SessionState: phase, elapsed_minutes, exchange_count, baseline_affect, primary_thread, dropped_threads, key_words_used, language_map, body_locations_mentioned, tentative_pattern, interruption_events, audio_affect. CourseState: session_number, course_phase, session_summaries, formulation, next_session_intention, unresolved_threads.",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/graph/state.py",
       "design_doc": "docs/implementation.md#51-within-session-state",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Schema shape and default-field tests."
+        "status": "passing",
+        "files": ["backend/tests/test_state.py"],
+        "notes": "Schema defaults, override merge, transient turn channels, nested shapes."
       },
       "subtasks": [
         {
           "id": "F002-1",
           "name": "SessionState TypedDict",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F002-2",
           "name": "CourseState TypedDict",
-          "status": "planned"
+          "status": "completed"
         }
       ],
       "notes": "Depends on F001 for thresholds/constants.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F003",
