@@ -3,12 +3,12 @@
   "last_updated": "2026-08-24",
   "summary": {
     "total": 15,
-    "completed": 6,
+    "completed": 8,
     "in_progress": 0,
-    "planned": 9,
-    "tests_passing": 53,
+    "planned": 7,
+    "tests_passing": 68,
     "tests_failing": 0,
-    "tests_missing": 9
+    "tests_missing": 7
   },
   "features": [
     {
@@ -184,74 +184,74 @@
       "id": "F007",
       "name": "Phase agent nodes (5)",
       "description": "app/graph/nodes/phases/{landing,opening,deepening,meaning,closing}.py — five phase-specialized therapist agents, each with scoped prompt (§6.1) and its phase's technique subset as callable tools. Conditional edge selects by session.phase. Realizes methodology.md §6.10 techniques-as-tools (Baldo et al.).",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/graph/nodes/phases",
       "design_doc": "docs/implementation.md#61-structure--per-phase-prompts",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Pure functions of state → response; per-phase behaviour constraints (Landing max-1-question, Deepening silence permission, Closing no-new-threads)."
+        "status": "passing",
+        "files": ["backend/tests/test_phases.py"],
+        "notes": "8 tests: each node returns {'response': main-model text} and uses settings.main_model; per-phase prompt markers (Landing max-1-question/present-moment, Deepening silence permission + body question, Closing no-new-threads/carry-forward); session state + language mode + next_technique ride in the prompt."
       },
       "subtasks": [
         {
           "id": "F007-1",
           "name": "landing.py",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F007-2",
           "name": "opening.py",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F007-3",
           "name": "deepening.py",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F007-4",
           "name": "meaning.py",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F007-5",
           "name": "closing.py",
-          "status": "planned"
+          "status": "completed"
         }
       ],
-      "notes": "Five nodes share prompt scaffolding (persona, language mode, session state, safety rules); each adds its own phase block + technique subset.",
+      "notes": "Five nodes share prompt scaffolding (persona, language mode, session state, safety rules, key directives) in _common.py; each adds its own phase block + technique subset. All share identical async signature for F010's conditional edge.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F008",
       "name": "Crisis node",
       "description": "app/graph/nodes/crisis.py — crisis protocol response (acknowledge with warmth, stop exploration, speak resources slowly + surface on screen, stay present, never hang up) and parallel human notification (emergency contact, minimal metadata). Fires emergency contact notification per methodology §7.3.",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/graph/nodes/crisis.py",
       "design_doc": "docs/methodology.md#73-crisis-detection",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Protocol-step enforcement; notification payload is minimal metadata only (no transcript); no-op when no emergency contact."
+        "status": "passing",
+        "files": ["backend/tests/test_crisis.py"],
+        "notes": "7 tests: protocol prompt (warmth + helpline) via settings.main_model; model-failure fallback speaks helpline; crisis_surface payload; notification skip-when-no-contact; sent payload is minimal-metadata-only."
       },
       "subtasks": [
         {
           "id": "F008-1",
           "name": "Crisis response protocol",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F008-2",
           "name": "Emergency-contact notification (minimal payload)",
-          "status": "planned"
+          "status": "completed"
         }
       ],
-      "notes": "Depends on F003 (safety gate routes here).",
+      "notes": "Depends on F003 (safety gate routes here). Notification is a logged outbound signal in v0 — SMS/push transport is deployment-time.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F009",

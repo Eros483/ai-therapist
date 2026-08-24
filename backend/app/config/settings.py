@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     # --- crisis resources (control surface + crisis protocol) ---
     crisis_helpline_number: str = "14416"
     crisis_website: str | None = None
+    # optional participant emergency contact (crisis notification, methodology §7.3)
+    emergency_contact_number: str | None = None
 
 
 settings = Settings()
