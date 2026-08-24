@@ -3,42 +3,42 @@
   "last_updated": "2026-08-24",
   "summary": {
     "total": 15,
-    "completed": 0,
+    "completed": 1,
     "in_progress": 0,
-    "planned": 15,
-    "tests_passing": 0,
+    "planned": 14,
+    "tests_passing": 6,
     "tests_failing": 0,
-    "tests_missing": 15
+    "tests_missing": 14
   },
   "features": [
     {
       "id": "F001",
       "name": "Configuration layer",
       "description": "pydantic-settings BaseSettings in app/config/ — every model, provider, and threshold env-swappable (main_model, extraction_model, safety_model, stt/tts_provider, session_minutes, course_sessions, turn_end_vad_thresholds, silence_checkin_seconds). Model-agnosticism hard rule: nothing hardcoded, all via LiteLLM + config.",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/config",
       "design_doc": "docs/implementation.md#711-configuration",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Test env-var mapping and default overrides; a field without a default raises at startup when unset."
+        "status": "passing",
+        "files": ["backend/tests/test_config.py"],
+        "notes": "Env-var mapping, default overrides, and required-field-raises-when-unset covered."
       },
       "subtasks": [
         {
           "id": "F001-1",
           "name": "Settings class with all §7.11 fields",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F001-2",
           "name": ".env.example with keys, no values",
-          "status": "planned"
+          "status": "completed"
         }
       ],
       "notes": "Prerequisite for every other feature — every module reads settings.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F002",
