@@ -65,6 +65,16 @@ PHASES = ("landing", "opening", "deepening", "meaning", "closing")
 COURSE_PHASES = ("foundation", "exploration", "working", "termination")
 
 
+def make_thread_id(participant_id: str, session_number: int) -> str:
+    """Checkpointer thread_id per §7.6: participant:{id}:session:{n}."""
+    return f"participant:{participant_id}:session:{session_number}"
+
+
+def participant_thread_prefix(participant_id: str) -> str:
+    """Prefix matching every thread belonging to a participant (deletion cascade)."""
+    return f"participant:{participant_id}:session:"
+
+
 def new_session_state(**overrides) -> SessionState:
     state: SessionState = {
         "phase": "landing",

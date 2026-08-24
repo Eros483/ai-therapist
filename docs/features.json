@@ -3,12 +3,12 @@
   "last_updated": "2026-08-24",
   "summary": {
     "total": 15,
-    "completed": 8,
+    "completed": 9,
     "in_progress": 0,
-    "planned": 7,
-    "tests_passing": 68,
+    "planned": 6,
+    "tests_passing": 79,
     "tests_failing": 0,
-    "tests_missing": 7
+    "tests_missing": 6
   },
   "features": [
     {
@@ -407,35 +407,35 @@
       "id": "F014",
       "name": "Storage (DB, crypto, course store)",
       "description": "app/storage/{db,crypto,course_store}.py — PostgreSQL async engine (SQLAlchemy 2.0 + psycopg), LangGraph PostgresSaver checkpointer, Fernet app-layer encryption of session content at rest, CourseState persistence. Deletion cascades checkpointer thread + course rows. DPDP-aligned if ever deployed (impl §5.5).",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/storage",
       "design_doc": "docs/implementation.md#55-persistence--privacy",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Encrypt/decrypt round-trip; course store CRUD; deletion cascade."
+        "status": "passing",
+        "files": ["backend/tests/test_crypto.py", "backend/tests/test_course_store.py"],
+        "notes": "11 tests: Fernet round-trip/opaque/key-mismatch/tamper; course-store CRUD + encrypted-at-rest against aitherapy_test Postgres; delete_participant cascades checkpointer threads."
       },
       "subtasks": [
         {
           "id": "F014-1",
           "name": "db.py async engine + checkpointer",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F014-2",
           "name": "crypto.py Fernet",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F014-3",
           "name": "course_store.py",
-          "status": "planned"
+          "status": "completed"
         }
       ],
-      "notes": "Depends on F001 (database_url). Postgres from day one.",
+      "notes": "Depends on F001 (database_url). Postgres from day one. Checkpointer URL normalized asyncpg→psycopg; thread deletion after cursor iteration (deadlock).",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F015",
