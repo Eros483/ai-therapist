@@ -41,7 +41,11 @@ def test_env_var_mapping(monkeypatch):
     assert s.turn_end_vad_thresholds == {"landing": 1.0, "deepening": 4.0}
 
 
-def test_provider_keys_optional():
+def test_provider_keys_optional(monkeypatch):
+    # litellm's import runs load_dotenv(), so the real .env leaks into
+    # os.environ — delenv keeps this hermetic regardless of test order.
+    for key in ("SARVAM_API_KEY", "RUMIK_API_KEY", "GEMINI_API_KEY", "GROQ_API_KEY"):
+        monkeypatch.delenv(key, raising=False)
     s = make_settings()
     assert s.sarvam_api_key is None
     assert s.gemini_api_key is None

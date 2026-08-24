@@ -3,12 +3,12 @@
   "last_updated": "2026-08-24",
   "summary": {
     "total": 15,
-    "completed": 2,
+    "completed": 6,
     "in_progress": 0,
-    "planned": 13,
-    "tests_passing": 13,
+    "planned": 9,
+    "tests_passing": 53,
     "tests_failing": 0,
-    "tests_missing": 13
+    "tests_missing": 9
   },
   "features": [
     {
@@ -73,112 +73,112 @@
       "id": "F003",
       "name": "Safety node (L1 lexicon + L2 small-model gate)",
       "description": "app/graph/nodes/safety.py — 3-layer crisis safety per impl §7.8. L1 high-precision lexicon (English + romanized Hindi, zero latency); L2 zero-shot small-model strict-JSON classifier via LiteLLM, recall-tuned, gates the phase agent (parallel branch). Crisis routing never runs through the main therapist model.",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/graph/nodes/safety.py",
       "design_doc": "docs/implementation.md#78-safety-stack",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Pure function of transcript → {crisis: bool, category}. Test L1 lexicon hits/misses incl. romanized Hindi; L2 strict-JSON parse; recall-over-precision stance."
+        "status": "passing",
+        "files": ["backend/tests/test_safety.py"],
+        "notes": "14 tests: L1 hits/misses incl. romanized Hindi + suicide-prevention negation; L2 strict-JSON parse; parse-failure returns non-crisis."
       },
       "subtasks": [
         {
           "id": "F003-1",
           "name": "L1 lexicon module + phrase set",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F003-2",
           "name": "L2 zero-shot classifier node via LiteLLM",
-          "status": "planned"
+          "status": "completed"
         }
       ],
       "notes": "L3 (fine-tuned classifier) deliberately deferred — research deliverable, not a prerequisite (impl §7.8).",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F004",
       "name": "Register classifier",
       "description": "app/graph/nodes/register.py — register score 0-2 (formal-en/hinglish/hindi-led) plus continuous CMI (Code-Mixing Index) per utterance. v0 rule-based particle heuristics from methodology.md §3.3; upgrades to audio-feature + transcript classifier later.",
-      "status": "planned",
+      "status": "completed",
       "priority": "medium",
       "module": "backend/app/graph/nodes/register.py",
       "design_doc": "docs/implementation.md#21-register-classifier",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Pure function of text → {register, cmi}. CMI ≥ 0.5 threshold; particle detection (yaar/na/matlab/bas); one-exchange lag transition logic."
+        "status": "passing",
+        "files": ["backend/tests/test_register.py"],
+        "notes": "CMI pure/balanced/empty cases; register 0/1/2 mapping; particle detection; register_node partial update shape."
       },
       "subtasks": [
         {
           "id": "F004-1",
           "name": "CMI computation",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F004-2",
           "name": "Particle/register heuristics v0",
-          "status": "planned"
+          "status": "completed"
         }
       ],
       "notes": "Depends on F001.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F005",
       "name": "Affect-from-audio node",
       "description": "app/graph/nodes/affect.py — audio affect: arousal_delta, flat_prosody_streak. v0 is a schema-only stub per impl §7.5; baseline_affect measured from audio (pace/volume/pitch/flatness), feeds crisis detection and session state.",
-      "status": "planned",
+      "status": "completed",
       "priority": "low",
       "module": "backend/app/graph/nodes/affect.py",
       "design_doc": "docs/implementation.md#51-within-session-state",
       "tests": {
-        "status": "missing",
-        "files": [],
+        "status": "passing",
+        "files": ["backend/tests/test_affect.py"],
         "notes": "Stub returns schema-valid defaults; real signal extraction deferred."
       },
       "subtasks": [
         {
           "id": "F005-1",
           "name": "Schema + stub node",
-          "status": "planned"
+          "status": "completed"
         }
       ],
       "notes": "Deliberately stubbed v0; real audio feature extraction is later work.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F006",
       "name": "State extraction node",
       "description": "app/graph/nodes/extraction.py — separate lightweight small-model extraction call after each exchange (impl §5.2), updates SessionState and emits next_technique (response-act). Grounded in PIECE (plan-before-summarize) and READER (response-act prediction). Auditable, deterministic.",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/graph/nodes/extraction.py",
       "design_doc": "docs/implementation.md#52-state-ownership",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Pure function of transcript + prev state → updated JSON + next_technique. Strict JSON; auditable state diff."
+        "status": "passing",
+        "files": ["backend/tests/test_extraction.py"],
+        "notes": "9 tests: strict-JSON parse (fenced/prose/garbage); diff-merge append-don't-wipe; next_technique clamped to canonical set; settings.extraction_model used; parse-failure degrades safely."
       },
       "subtasks": [
         {
           "id": "F006-1",
           "name": "Extraction prompt + strict-JSON parse",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F006-2",
           "name": "next_technique emission",
-          "status": "planned"
+          "status": "completed"
         }
       ],
       "notes": "One of the two accepted serial LLM hops — must use small/fast model.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F007",
