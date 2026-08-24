@@ -1,0 +1,470 @@
+{
+  "project": "ai-therapist",
+  "last_updated": "2026-08-24",
+  "summary": {
+    "total": 15,
+    "completed": 0,
+    "in_progress": 0,
+    "planned": 15,
+    "tests_passing": 0,
+    "tests_failing": 0,
+    "tests_missing": 15
+  },
+  "features": [
+    {
+      "id": "F001",
+      "name": "Configuration layer",
+      "description": "pydantic-settings BaseSettings in app/config/ — every model, provider, and threshold env-swappable (main_model, extraction_model, safety_model, stt/tts_provider, session_minutes, course_sessions, turn_end_vad_thresholds, silence_checkin_seconds). Model-agnosticism hard rule: nothing hardcoded, all via LiteLLM + config.",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/config",
+      "design_doc": "docs/implementation.md#711-configuration",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Test env-var mapping and default overrides; a field without a default raises at startup when unset."
+      },
+      "subtasks": [
+        {
+          "id": "F001-1",
+          "name": "Settings class with all §7.11 fields",
+          "status": "planned"
+        },
+        {
+          "id": "F001-2",
+          "name": ".env.example with keys, no values",
+          "status": "planned"
+        }
+      ],
+      "notes": "Prerequisite for every other feature — every module reads settings.",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F002",
+      "name": "Graph state schemas",
+      "description": "SessionState and CourseState LangGraph TypedDicts in app/graph/state.py, per implementation.md §5.1 and §4.1. SessionState: phase, elapsed_minutes, exchange_count, baseline_affect, primary_thread, dropped_threads, key_words_used, language_map, body_locations_mentioned, tentative_pattern, interruption_events, audio_affect. CourseState: session_number, course_phase, session_summaries, formulation, next_session_intention, unresolved_threads.",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/graph/state.py",
+      "design_doc": "docs/implementation.md#51-within-session-state",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Schema shape and default-field tests."
+      },
+      "subtasks": [
+        {
+          "id": "F002-1",
+          "name": "SessionState TypedDict",
+          "status": "planned"
+        },
+        {
+          "id": "F002-2",
+          "name": "CourseState TypedDict",
+          "status": "planned"
+        }
+      ],
+      "notes": "Depends on F001 for thresholds/constants.",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F003",
+      "name": "Safety node (L1 lexicon + L2 small-model gate)",
+      "description": "app/graph/nodes/safety.py — 3-layer crisis safety per impl §7.8. L1 high-precision lexicon (English + romanized Hindi, zero latency); L2 zero-shot small-model strict-JSON classifier via LiteLLM, recall-tuned, gates the phase agent (parallel branch). Crisis routing never runs through the main therapist model.",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/graph/nodes/safety.py",
+      "design_doc": "docs/implementation.md#78-safety-stack",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Pure function of transcript → {crisis: bool, category}. Test L1 lexicon hits/misses incl. romanized Hindi; L2 strict-JSON parse; recall-over-precision stance."
+      },
+      "subtasks": [
+        {
+          "id": "F003-1",
+          "name": "L1 lexicon module + phrase set",
+          "status": "planned"
+        },
+        {
+          "id": "F003-2",
+          "name": "L2 zero-shot classifier node via LiteLLM",
+          "status": "planned"
+        }
+      ],
+      "notes": "L3 (fine-tuned classifier) deliberately deferred — research deliverable, not a prerequisite (impl §7.8).",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F004",
+      "name": "Register classifier",
+      "description": "app/graph/nodes/register.py — register score 0-2 (formal-en/hinglish/hindi-led) plus continuous CMI (Code-Mixing Index) per utterance. v0 rule-based particle heuristics from methodology.md §3.3; upgrades to audio-feature + transcript classifier later.",
+      "status": "planned",
+      "priority": "medium",
+      "module": "backend/app/graph/nodes/register.py",
+      "design_doc": "docs/implementation.md#21-register-classifier",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Pure function of text → {register, cmi}. CMI ≥ 0.5 threshold; particle detection (yaar/na/matlab/bas); one-exchange lag transition logic."
+      },
+      "subtasks": [
+        {
+          "id": "F004-1",
+          "name": "CMI computation",
+          "status": "planned"
+        },
+        {
+          "id": "F004-2",
+          "name": "Particle/register heuristics v0",
+          "status": "planned"
+        }
+      ],
+      "notes": "Depends on F001.",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F005",
+      "name": "Affect-from-audio node",
+      "description": "app/graph/nodes/affect.py — audio affect: arousal_delta, flat_prosody_streak. v0 is a schema-only stub per impl §7.5; baseline_affect measured from audio (pace/volume/pitch/flatness), feeds crisis detection and session state.",
+      "status": "planned",
+      "priority": "low",
+      "module": "backend/app/graph/nodes/affect.py",
+      "design_doc": "docs/implementation.md#51-within-session-state",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Stub returns schema-valid defaults; real signal extraction deferred."
+      },
+      "subtasks": [
+        {
+          "id": "F005-1",
+          "name": "Schema + stub node",
+          "status": "planned"
+        }
+      ],
+      "notes": "Deliberately stubbed v0; real audio feature extraction is later work.",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F006",
+      "name": "State extraction node",
+      "description": "app/graph/nodes/extraction.py — separate lightweight small-model extraction call after each exchange (impl §5.2), updates SessionState and emits next_technique (response-act). Grounded in PIECE (plan-before-summarize) and READER (response-act prediction). Auditable, deterministic.",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/graph/nodes/extraction.py",
+      "design_doc": "docs/implementation.md#52-state-ownership",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Pure function of transcript + prev state → updated JSON + next_technique. Strict JSON; auditable state diff."
+      },
+      "subtasks": [
+        {
+          "id": "F006-1",
+          "name": "Extraction prompt + strict-JSON parse",
+          "status": "planned"
+        },
+        {
+          "id": "F006-2",
+          "name": "next_technique emission",
+          "status": "planned"
+        }
+      ],
+      "notes": "One of the two accepted serial LLM hops — must use small/fast model.",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F007",
+      "name": "Phase agent nodes (5)",
+      "description": "app/graph/nodes/phases/{landing,opening,deepening,meaning,closing}.py — five phase-specialized therapist agents, each with scoped prompt (§6.1) and its phase's technique subset as callable tools. Conditional edge selects by session.phase. Realizes methodology.md §6.10 techniques-as-tools (Baldo et al.).",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/graph/nodes/phases",
+      "design_doc": "docs/implementation.md#61-structure--per-phase-prompts",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Pure functions of state → response; per-phase behaviour constraints (Landing max-1-question, Deepening silence permission, Closing no-new-threads)."
+      },
+      "subtasks": [
+        {
+          "id": "F007-1",
+          "name": "landing.py",
+          "status": "planned"
+        },
+        {
+          "id": "F007-2",
+          "name": "opening.py",
+          "status": "planned"
+        },
+        {
+          "id": "F007-3",
+          "name": "deepening.py",
+          "status": "planned"
+        },
+        {
+          "id": "F007-4",
+          "name": "meaning.py",
+          "status": "planned"
+        },
+        {
+          "id": "F007-5",
+          "name": "closing.py",
+          "status": "planned"
+        }
+      ],
+      "notes": "Five nodes share prompt scaffolding (persona, language mode, session state, safety rules); each adds its own phase block + technique subset.",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F008",
+      "name": "Crisis node",
+      "description": "app/graph/nodes/crisis.py — crisis protocol response (acknowledge with warmth, stop exploration, speak resources slowly + surface on screen, stay present, never hang up) and parallel human notification (emergency contact, minimal metadata). Fires emergency contact notification per methodology §7.3.",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/graph/nodes/crisis.py",
+      "design_doc": "docs/methodology.md#73-crisis-detection",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Protocol-step enforcement; notification payload is minimal metadata only (no transcript); no-op when no emergency contact."
+      },
+      "subtasks": [
+        {
+          "id": "F008-1",
+          "name": "Crisis response protocol",
+          "status": "planned"
+        },
+        {
+          "id": "F008-2",
+          "name": "Emergency-contact notification (minimal payload)",
+          "status": "planned"
+        }
+      ],
+      "notes": "Depends on F003 (safety gate routes here).",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F009",
+      "name": "Course graph (synthesis + planner)",
+      "description": "app/graph/nodes/course/{synthesis,planner}.py — post-session graph (impl §4.2): synthesis extracts per-session summary against the counseling-components schema (ConSum/MentalCLOUDS); planner updates formulation, evaluates course-phase milestones (§4.3: pattern across ≥2 sessions, patient-confirmed insight), sets next_session_intention. Runs async after session close.",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/graph/nodes/course",
+      "design_doc": "docs/implementation.md#42-post-session-graph",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Milestone predicates are pure functions of CourseState — test Foundation→Exploration→Working→Termination transitions incl. calendar-bounded session 8."
+      },
+      "subtasks": [
+        {
+          "id": "F009-1",
+          "name": "synthesis.py",
+          "status": "planned"
+        },
+        {
+          "id": "F009-2",
+          "name": "planner.py + milestone predicates",
+          "status": "planned"
+        }
+      ],
+      "notes": "Depends on F002, F014 (course store).",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F010",
+      "name": "Turn graph assembly",
+      "description": "app/graph/turn_graph.py — assembles the per-turn LangGraph (impl §7.3): L1 lexicon gate → crisis edge OR parallel [L2 safety ‖ register ‖ affect ‖ extraction] → join → phase_agent[session.phase] conditional edge → END. Uses PostgresSaver checkpointer (thread_id participant:{id}:session:{n}).",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/graph/turn_graph.py",
+      "design_doc": "docs/implementation.md#73-turn-graph",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Topology: crisis routing never runs the phase agent; join waits on L2-safe; conditional edge selects correct phase agent."
+      },
+      "subtasks": [
+        {
+          "id": "F010-1",
+          "name": "Graph assembly + conditional edges",
+          "status": "planned"
+        },
+        {
+          "id": "F010-2",
+          "name": "PostgresSaver checkpointer wiring",
+          "status": "planned"
+        }
+      ],
+      "notes": "Depends on F002, F003-F007. Runs inside FastAPI process.",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F011",
+      "name": "Voice pipeline (Pipecat)",
+      "description": "app/voice/pipeline.py + timers.py — Pipecat pipeline (websocket transport) + silero VAD, per impl §7.7. Two distinct timers: phase-dependent turn-end VAD threshold (Deepening > Landing) vs the 90-second silence soft check-in (one utterance, never repeated). Stream-scoped; owns cancellation on barge-in.",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/voice",
+      "design_doc": "docs/implementation.md#77-voice-loop-integration",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Timer logic as pure functions (phase → VAD threshold); silence check-in fires once; timers never conflated."
+      },
+      "subtasks": [
+        {
+          "id": "F011-1",
+          "name": "Pipeline assembly + websocket transport",
+          "status": "planned"
+        },
+        {
+          "id": "F011-2",
+          "name": "timers.py (turn-end VAD vs 90s check-in)",
+          "status": "planned"
+        }
+      ],
+      "notes": "Pipecat may need system audio deps (check docs).",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F012",
+      "name": "Voice provider services",
+      "description": "app/voice/services/{sarvam_stt,rumik_tts,bulbul_tts}.py — STTProvider/TTSProvider async streaming protocols (impl §7.9). Sarvam Saaras STT, Rumik Mulberry/Muga TTS, Sarvam Bulbul TTS. TTS implementations own script normalization at the TTS boundary (romanized → Devanagari for Mulberry, §2.2) and phase prosody directives merged into the TTS call (§7.7).",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/voice/services",
+      "design_doc": "docs/implementation.md#79-provider-interfaces",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Interface conformance; script-normalization correctness (Romanized Hindi → Devanagari); provider selection via config only."
+      },
+      "subtasks": [
+        {
+          "id": "F012-1",
+          "name": "STTProvider protocol + Sarvam STT",
+          "status": "planned"
+        },
+        {
+          "id": "F012-2",
+          "name": "TTSProvider protocol + Rumik Mulberry/Muga",
+          "status": "planned"
+        },
+        {
+          "id": "F012-3",
+          "name": "Bulbul TTS + script normalization at boundary",
+          "status": "planned"
+        }
+      ],
+      "notes": "Providers are eval-time swappable — never a default. Requires keys in .env.",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F013",
+      "name": "Barge-in / interruption capture",
+      "description": "app/voice/interruptions.py — patient speech during TTS playback cancels the stream instantly; captures truncated AI text + phase + minute → interruption_event appended to the next turn's SessionState.interruption_events (impl §7.7, methodology §6.8).",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/voice/interruptions.py",
+      "design_doc": "docs/implementation.md#77-voice-loop-integration",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Capture produces schema-valid interruption_event; model never restarts the interrupted sentence."
+      },
+      "subtasks": [
+        {
+          "id": "F013-1",
+          "name": "Cancellation + truncated-text capture",
+          "status": "planned"
+        },
+        {
+          "id": "F013-2",
+          "name": "interruption_event → next-turn state",
+          "status": "planned"
+        }
+      ],
+      "notes": "Owned by voice layer, not the graph.",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F014",
+      "name": "Storage (DB, crypto, course store)",
+      "description": "app/storage/{db,crypto,course_store}.py — PostgreSQL async engine (SQLAlchemy 2.0 + psycopg), LangGraph PostgresSaver checkpointer, Fernet app-layer encryption of session content at rest, CourseState persistence. Deletion cascades checkpointer thread + course rows. DPDP-aligned if ever deployed (impl §5.5).",
+      "status": "planned",
+      "priority": "high",
+      "module": "backend/app/storage",
+      "design_doc": "docs/implementation.md#55-persistence--privacy",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Encrypt/decrypt round-trip; course store CRUD; deletion cascade."
+      },
+      "subtasks": [
+        {
+          "id": "F014-1",
+          "name": "db.py async engine + checkpointer",
+          "status": "planned"
+        },
+        {
+          "id": "F014-2",
+          "name": "crypto.py Fernet",
+          "status": "planned"
+        },
+        {
+          "id": "F014-3",
+          "name": "course_store.py",
+          "status": "planned"
+        }
+      ],
+      "notes": "Depends on F001 (database_url). Postgres from day one.",
+      "added": "2026-08-24",
+      "completed": null
+    },
+    {
+      "id": "F015",
+      "name": "Server (FastAPI control surface + /ws)",
+      "description": "app/server/main.py + static/ — single FastAPI process serving the minimal static control-surface page (crisis resources + session controls + memory controls) and the /ws Pipecat voice endpoint. No REST /api/v1/, no text-chat mode. Runs turn-graph invocations and the voice loop.",
+      "status": "planned",
+      "priority": "medium",
+      "module": "backend/app/server",
+      "design_doc": "docs/implementation.md#72-process-model",
+      "tests": {
+        "status": "missing",
+        "files": [],
+        "notes": "Control surface serves crisis resources; /ws endpoint wires Pipecat; no conversational text mode."
+      },
+      "subtasks": [
+        {
+          "id": "F015-1",
+          "name": "FastAPI app + /ws endpoint",
+          "status": "planned"
+        },
+        {
+          "id": "F015-2",
+          "name": "Static control-surface page",
+          "status": "planned"
+        }
+      ],
+      "notes": "Depends on F010, F011, F014.",
+      "added": "2026-08-24",
+      "completed": null
+    }
+  ]
+}

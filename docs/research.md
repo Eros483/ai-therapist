@@ -3,7 +3,7 @@
 > Compiled: Aug 2026 (v2 — deep dive expanded)
 > Scope: Tanmoy Chakraborty's mental-health AI work + bonus finds.
 > Depth labels: `[full]` = full paper read · `[abstract]` = abstract + details read · `[title]` = title/venue only, not yet read.
-> Status: Reference material — not yet folded into design.md (pending discussion).
+> Status: **Folded into the spec** — methodology-side mappings in `methodology.md` §8, systems-side mappings in `implementation.md` §7. (design.md v1.4 was split into those two docs.)
 
 ---
 
@@ -164,6 +164,8 @@ Correspondence — Chakraborty, Sinha Deb, Kulkarni, Masud, Bada Math, Oke, Saga
 #### SAHAY (IJCAI '25) `[title]`
 
 *Multimodal, Privacy-Preserving AI for Suicide Risk Detection and Intervention in India* — Singh, Sethi, Math, Chakraborty. Not found open-access; details unread.
+
+**Relevance note:** SAHAY is the direction-marker for our safety layer L3 (fine-tuned crisis classifier on Hinglish data) — see implementation.md §7.8. Read in depth when accessible.
 
 ### E. Privacy
 
