@@ -1,14 +1,9 @@
-"""F011 pipeline assembly smoke tests — the pure timer logic lives in
-test_timers.py; here we only prove the Pipecat pieces construct in-process
-(no audio hardware needed to build them) and the turn-bridge logic."""
+"""F011 pipeline tests — the pure timer logic lives in test_timers.py; here we
+prove the SmallWebRTC pieces construct and the turn-bridge logic works."""
 
 import pytest
 
-from app.voice.pipeline import build_pipeline, build_stt, build_transport, build_tts
-
-
-class _FakeWebsocket:
-    pass
+from app.voice.pipeline import build_stt, build_tts, build_vad, build_webrtc_transport, run_turn
 
 
 def test_timers_importable():
@@ -23,9 +18,15 @@ def test_timers_importable():
     assert silence_checkin_should_fire(90)
 
 
-def test_transport_constructs():
-    transport = build_transport(_FakeWebsocket())
+def test_webrtc_transport_constructs():
+    from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
+
+    transport = build_webrtc_transport(SmallWebRTCConnection())
     assert transport is not None
+
+
+def test_vad_processor_constructs():
+    assert build_vad() is not None
 
 
 def test_services_construct():
@@ -33,18 +34,9 @@ def test_services_construct():
     assert build_tts() is not None
 
 
-def test_pipeline_constructs():
-    def invoker(thread_id, state):
-        return {"response": "hello"}
-
-    run = build_pipeline(_FakeWebsocket(), invoker, "participant:test:session:1")
-    assert callable(run)  # returns the async run() callable (Pipecat 1.7)
-
-
 @pytest.mark.asyncio
 async def test_run_turn_invokes_graph():
     from app.graph.state import new_session_state
-    from app.voice.pipeline import run_turn
 
     calls = []
 

@@ -1,5 +1,5 @@
-"""F015 server tests — control surface, memory delete, and the /ws invoker
-wiring. The Pipecat pipeline itself is exercised by test_pipeline.py; here we
+"""F015 server tests — control surface, memory delete, and the graph-invoker
+wiring. The voice pipeline itself is exercised by test_pipeline.py; here we
 test what the FastAPI app owns."""
 
 import pytest

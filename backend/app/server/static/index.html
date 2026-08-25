@@ -15,7 +15,6 @@
   .muted { opacity: 0.7; font-size: 0.9rem; }
   #status.ok { color: #2a7f2a; }
   #status.err { color: #b3261e; }
-  #log { font-family: ui-monospace, monospace; font-size: 0.85rem; white-space: pre-wrap; }
 </style>
 </head>
 <body>
@@ -35,11 +34,10 @@
     <h2>Session</h2>
     <p class="muted">Voice-only. Press start, allow the microphone, and talk. The therapist mirrors your language — English, Hinglish, or Hindi.</p>
     <p>
-      <button id="start" type="button">Start voice session</button>
-      <button id="stop" type="button" disabled>End session</button>
+      <button id="connect" type="button">Start voice session</button>
     </p>
-    <p id="status" class="muted">Not connected.</p>
-    <div id="log" class="muted"></div>
+    <p id="status" class="muted">Disconnected.</p>
+    <audio id="audio-el" autoplay></audio>
   </div>
 
   <div class="card">
@@ -55,125 +53,105 @@
 
 <script>
 (function () {
-  const status = document.getElementById('status');
-  const logEl = document.getElementById('log');
-  const startBtn = document.getElementById('start');
-  const stopBtn = document.getElementById('stop');
+  // Vanilla WebRTC client (SmallWebRTC signaling) — from the canonical
+  // p2p-webrtc/voice-agent example: browser native RTCPeerConnection
+  // + POST /api/offer (SDP) + PATCH /api/offer (ICE candidates).
+  const statusEl = document.getElementById('status');
+  const buttonEl = document.getElementById('connect');
+  const audioEl = document.getElementById('audio-el');
 
-  let ws = null, stream = null, micCtx = null, proc = null, playCtx = null;
-  let nextPlayTime = 0;
-  let resampleAcc = 0;
+  let connected = false;
+  let peerConnection = null;
+  let localStream = null;
 
-  function setStatus(text, cls) {
-    status.textContent = text;
-    status.className = cls ? cls : 'muted';
-  }
-  function logLine(text) {
-    logEl.textContent = (logEl.textContent ? logEl.textContent + '\n' : '') +
-      new Date().toLocaleTimeString() + '  ' + text;
-  }
+  const sendIceCandidate = async (pc, candidate) => {
+    await fetch('/api/offer', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pc_id: pc.pc_id,
+        candidates: [{
+          candidate: candidate.candidate,
+          sdp_mid: candidate.sdpMid,
+          sdp_mline_index: candidate.sdpMLineIndex,
+        }],
+      }),
+    });
+  };
 
-  // Simple ratio decimation (nearest sample) from micCtx.sampleRate -> 16000.
-  // ponytail: WebAudio resamples mic to the context rate; if the browser
-  // ignored {sampleRate:16000}, this keeps STT input at the right rate.
-  function toPcm16(input, targetRate) {
-    const ratio = targetRate / micCtx.sampleRate;
-    const out = [];
-    for (let i = 0; i < input.length; i++) {
-      resampleAcc += ratio;
-      while (resampleAcc >= 1) {
-        resampleAcc -= 1;
-        let s = input[i];
-        s = s < -1 ? -1 : (s > 1 ? 1 : s);
-        out.push(s < 0 ? s * 0x8000 : s * 0x7fff);
+  const createConnection = async (audioTrack) => {
+    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    const pc = new RTCPeerConnection(config);
+    pc.pendingIceCandidates = [];
+    pc.canSendIceCandidates = false;
+
+    pc.ontrack = (e) => { audioEl.srcObject = e.streams[0]; };
+    // SmallWebRTCTransport expects both transceivers.
+    pc.addTransceiver(audioTrack, { direction: 'sendrecv' });
+    pc.addTransceiver('video', { direction: 'sendrecv' });
+
+    pc.onconnectionstatechange = () => {
+      const state = pc?.connectionState;
+      if (state === 'connected') {
+        connected = true;
+        statusEl.textContent = 'Connected — speak.';
+        statusEl.className = 'ok';
+        buttonEl.textContent = 'End session';
+        buttonEl.disabled = false;
+      } else if (state === 'disconnected' || state === 'failed') {
+        disconnect();
       }
-    }
-    const bytes = new Uint8Array(out.length * 2);
-    out.forEach((v, i) => { bytes[i * 2] = v & 0xff; bytes[i * 2 + 1] = (v >> 8) & 0xff; });
-    let bin = '';
-    bytes.forEach((b) => { bin += String.fromCharCode(b); });
-    return btoa(bin);
-  }
+    };
+    pc.onicecandidate = (event) => {
+      if (!event.candidate) return;
+      if (pc.canSendIceCandidates && pc.pc_id) sendIceCandidate(pc, event.candidate);
+      else pc.pendingIceCandidates.push(event.candidate);
+    };
 
-  function playAudio(dataBase64, sampleRate) {
-    const bytes = Uint8Array.from(atob(dataBase64), (c) => c.charCodeAt(0));
-    const int16 = new Int16Array(bytes.buffer);
-    const float = new Float32Array(int16.length);
-    for (let i = 0; i < int16.length; i++) float[i] = int16[i] / 32768;
+    await pc.setLocalDescription(await pc.createOffer());
+    const offer = pc.localDescription;
+    const response = await fetch('/api/offer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sdp: offer.sdp, type: offer.type }),
+    });
+    if (!response.ok) throw new Error('offer rejected: ' + response.status);
+    const answer = await response.json();
+    pc.pc_id = answer.pc_id;
+    await pc.setRemoteDescription(answer);
 
-    playCtx = playCtx || new AudioContext();
-    const buffer = playCtx.createBuffer(1, float.length, sampleRate);
-    buffer.copyToChannel(float, 0);
-    const source = playCtx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(playCtx.destination);
-    const when = Math.max(playCtx.currentTime, nextPlayTime);
-    source.start(when);
-    nextPlayTime = when + buffer.duration;
-  }
+    pc.canSendIceCandidates = true;
+    for (const candidate of pc.pendingIceCandidates) await sendIceCandidate(pc, candidate);
+    pc.pendingIceCandidates = [];
+    return pc;
+  };
 
-  async function startSession() {
+  const connect = async () => {
+    statusEl.textContent = 'Connecting…';
+    statusEl.className = 'muted';
+    buttonEl.disabled = true;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
-      });
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      peerConnection = await createConnection(localStream.getAudioTracks()[0]);
     } catch (err) {
-      setStatus('Microphone access denied: ' + err.message, 'err');
-      return;
+      statusEl.textContent = 'Failed to connect: ' + err.message;
+      statusEl.className = 'err';
+      buttonEl.disabled = false;
     }
+  };
 
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(`${proto}://${location.host}/ws`);
+  const disconnect = () => {
+    if (peerConnection) { peerConnection.close(); peerConnection = null; }
+    if (localStream) { localStream.getTracks().forEach((t) => t.stop()); localStream = null; }
+    audioEl.srcObject = null;
+    connected = false;
+    buttonEl.textContent = 'Start voice session';
+    buttonEl.disabled = false;
+    statusEl.textContent = 'Disconnected.';
+    statusEl.className = 'muted';
+  };
 
-    ws.onopen = () => {
-      setStatus('Connected — speak.', 'ok');
-      logLine('voice session connected');
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-    };
-    ws.onmessage = (ev) => {
-      let msg;
-      try { msg = JSON.parse(ev.data); } catch (e) { return; }
-      if (msg.type === 'audio') playAudio(msg.data, msg.sample_rate || 24000);
-    };
-    ws.onclose = () => {
-      setStatus('Disconnected.', '');
-      logLine('voice session ended');
-      cleanup();
-    };
-    ws.onerror = () => setStatus('WebSocket error.', 'err');
-
-    micCtx = new AudioContext({ sampleRate: 16000 });
-    const source = micCtx.createMediaStreamSource(stream);
-    proc = micCtx.createScriptProcessor(4096, 1, 1);
-    source.connect(proc);
-    proc.connect(micCtx.destination); // keep the graph alive
-    proc.onaudioprocess = (ev) => {
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
-      const data = ev.inputBuffer.getChannelData(0);
-      if (data.length === 0) return;
-      ws.send(JSON.stringify({ type: 'audio', data: toPcm16(data, 16000), sample_rate: 16000 }));
-    };
-  }
-
-  function cleanup() {
-    if (proc) { proc.disconnect(); proc = null; }
-    if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
-    if (micCtx) { micCtx.close().catch(() => {}); micCtx = null; }
-    if (playCtx) { playCtx.close().catch(() => {}); playCtx = null; }
-    nextPlayTime = 0; resampleAcc = 0;
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-  }
-
-  function stopSession() {
-    if (ws) { ws.close(); }
-    cleanup();
-    setStatus('Not connected.', '');
-  }
-
-  startBtn.addEventListener('click', startSession);
-  stopBtn.addEventListener('click', stopSession);
+  buttonEl.addEventListener('click', () => { connected ? disconnect() : connect(); });
 
   const deleteForm = document.getElementById('delete-form');
   const deleteResult = document.getElementById('delete-result');

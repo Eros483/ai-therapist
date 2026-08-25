@@ -1,16 +1,23 @@
 """FastAPI server (F015) — one process hosts the control-surface page, the
-``/ws`` Pipecat voice endpoint, and the graph invocations (impl §7.2).
+SmallWebRTC `/api/offer` voice endpoint, and the graph invocations (impl §7.2).
 
-No REST /api/v1/ and no text-chat mode: the visual surface is crisis resources
-+ session controls + memory controls; voice is the only conversational input.
+Voice transport is WebRTC (SmallWebRTC), per the Pipecat docs — browser audio
+over WebSocket is not a supported path. No REST /api/v1/ and no text-chat mode:
+the visual surface is crisis resources + session controls + memory controls;
+voice is the only conversational input.
 """
 
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket
+from fastapi import BackgroundTasks, FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pipecat.transports.smallwebrtc.request_handler import (
+    SmallWebRTCPatchRequest,
+    SmallWebRTCRequest,
+    SmallWebRTCRequestHandler,
+)
 
 from app.config.settings import settings
 from app.graph.course_graph import build_course_graph
@@ -19,9 +26,12 @@ from app.graph.turn_graph import build_turn_graph
 from app.logger import logger
 from app.storage.course_store import delete_participant
 from app.storage.db import init_db, make_checkpointer
-from app.voice.pipeline import GraphInvoker, build_pipeline
+from app.voice.pipeline import GraphInvoker, run_bot
 
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+# Handles the WebRTC offer/answer + ICE signaling for SmallWebRTC sessions.
+_small_webrtc_handler: SmallWebRTCRequestHandler = SmallWebRTCRequestHandler()
 
 
 @asynccontextmanager
@@ -29,6 +39,7 @@ async def lifespan(_app: FastAPI):
     await init_db()
     logger.info("database ready")
     yield
+    await _small_webrtc_handler.close()
 
 
 app = FastAPI(title="ai-therapist", lifespan=lifespan)
@@ -60,7 +71,7 @@ async def delete_participant_history(participant_id: str) -> dict:
 
 def make_graph_invoker(participant_id: str, session_number: int) -> GraphInvoker:
     """The server's turn-graph invoker: per-exchange graph invocation with the
-    PostgresSaver checkpointer, seeded from the stored course state.
+    PostgresSaver checkpointer.
 
     Returns an async (thread_id, state) -> updated-state callable. The thread_id
     argument is ignored (we derive it from the participant + session) so the
@@ -110,23 +121,33 @@ async def _load_or_new_course(participant_id: str) -> dict:
     return course or new_course_state()
 
 
-@app.websocket("/ws")
-async def voice_endpoint(websocket: WebSocket) -> None:
-    """The Pipecat voice endpoint (impl §7.7) — voice is the only conversational
-    input. V0: a single anonymous session (participant "local", session 1)."""
-    participant_id = "local"
-    session_number = 1
-    await websocket.accept()
-    invoker = make_graph_invoker(participant_id, session_number)
-    closer = make_course_closer(participant_id, session_number)
-    run_voice = build_pipeline(
-        websocket,
-        invoker,
-        make_thread_id(participant_id, session_number),
-        on_close=closer,
+@app.post("/api/offer")
+async def offer(request: SmallWebRTCRequest, background_tasks: BackgroundTasks):
+    """WebRTC offer → answer (SmallWebRTC signaling, p2p-webrtc example)."""
+
+    async def webrtc_connection_callback(connection):
+        # v0: a single anonymous session (participant "local", session 1).
+        participant_id = "local"
+        session_number = 1
+        invoker = make_graph_invoker(participant_id, session_number)
+        closer = make_course_closer(participant_id, session_number)
+        background_tasks.add_task(
+            run_bot,
+            connection,
+            invoker,
+            make_thread_id(participant_id, session_number),
+            closer,
+        )
+
+    logger.info("voice session start: local")
+    return await _small_webrtc_handler.handle_web_request(
+        request=request,
+        webrtc_connection_callback=webrtc_connection_callback,
     )
-    logger.info("voice session start: %s", participant_id)
-    try:
-        await run_voice()
-    except Exception as exc:  # pragma: no cover - runtime surface
-        logger.warning("voice session error: %s", exc)
+
+
+@app.patch("/api/offer")
+async def ice_candidate(request: SmallWebRTCPatchRequest):
+    """ICE candidate patch for the SmallWebRTC peer connection."""
+    await _small_webrtc_handler.handle_patch_request(request)
+    return {"status": "success"}
