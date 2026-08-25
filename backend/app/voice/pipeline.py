@@ -140,6 +140,7 @@ class TurnGraphProcessor(FrameProcessor):
 
         # Barge-in: patient spoke during TTS playback — capture it (F013).
         if isinstance(frame, UserStartedSpeakingFrame):
+            logger.info("VAD: user started speaking")
             truncated = truncated_ai_text(self._state.get("response", ""), "")
             event = capture_interruption(
                 interrupted_what=truncated or "previous response",
@@ -151,12 +152,14 @@ class TurnGraphProcessor(FrameProcessor):
             return
 
         if isinstance(frame, UserStoppedSpeakingFrame):
+            logger.info("VAD: user stopped speaking")
             await self.push_frame(frame)
             return
 
         # Final STT transcript → one turn-graph invocation → response → TTS.
         if isinstance(frame, TextFrame) and getattr(frame, "text", ""):
             self._transcript.append(frame.text)
+            logger.info("STT transcript: %r", frame.text)
             self._state, response, phase = await run_turn(
                 {**self._state, "patient_utterance": frame.text}, self._invoker, self._thread_id
             )
