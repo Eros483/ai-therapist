@@ -37,6 +37,9 @@ class SessionState(TypedDict, total=False):
     crisis_verdict: dict[str, object]
     next_technique: str
     response: str
+    # crisis tail outputs — the server surfaces these on the control page
+    crisis_surface: dict[str, str]
+    emergency_notification: dict[str, object]
 
 
 class SessionSummary(TypedDict):

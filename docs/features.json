@@ -3,12 +3,12 @@
   "last_updated": "2026-08-24",
   "summary": {
     "total": 15,
-    "completed": 9,
+    "completed": 11,
     "in_progress": 0,
-    "planned": 6,
-    "tests_passing": 79,
+    "planned": 4,
+    "tests_passing": 103,
     "tests_failing": 0,
-    "tests_missing": 6
+    "tests_missing": 4
   },
   "features": [
     {
@@ -257,59 +257,59 @@
       "id": "F009",
       "name": "Course graph (synthesis + planner)",
       "description": "app/graph/nodes/course/{synthesis,planner}.py — post-session graph (impl §4.2): synthesis extracts per-session summary against the counseling-components schema (ConSum/MentalCLOUDS); planner updates formulation, evaluates course-phase milestones (§4.3: pattern across ≥2 sessions, patient-confirmed insight), sets next_session_intention. Runs async after session close.",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/graph/nodes/course",
       "design_doc": "docs/implementation.md#42-post-session-graph",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Milestone predicates are pure functions of CourseState — test Foundation→Exploration→Working→Termination transitions incl. calendar-bounded session 8."
+        "status": "passing",
+        "files": ["backend/tests/test_planner.py", "backend/tests/test_course_graph.py"],
+        "notes": "14 tests: §4.3 milestone predicates (foundation/exploration/working/termination incl. calendar-bounded n=8); synthesis/planner strict-JSON + model-failure degrade; persist writes encrypted course; DB round-trip via get_course."
       },
       "subtasks": [
         {
           "id": "F009-1",
           "name": "synthesis.py",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F009-2",
           "name": "planner.py + milestone predicates",
-          "status": "planned"
+          "status": "completed"
         }
       ],
-      "notes": "Depends on F002, F014 (course store).",
+      "notes": "Depends on F002, F014 (course store). course_phase computed in code via evaluate_course_phase — never the model's word.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F010",
       "name": "Turn graph assembly",
       "description": "app/graph/turn_graph.py — assembles the per-turn LangGraph (impl §7.3): L1 lexicon gate → crisis edge OR parallel [L2 safety ‖ register ‖ affect ‖ extraction] → join → phase_agent[session.phase] conditional edge → END. Uses PostgresSaver checkpointer (thread_id participant:{id}:session:{n}).",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/graph/turn_graph.py",
       "design_doc": "docs/implementation.md#73-turn-graph",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Topology: crisis routing never runs the phase agent; join waits on L2-safe; conditional edge selects correct phase agent."
+        "status": "passing",
+        "files": ["backend/tests/test_turn_graph.py"],
+        "notes": "10 tests: routing helpers; L1-hit and L2-crisis integration prove the phase agent never runs (fake raises on phase prompt); benign utterance runs phase agent; checkpointer persists thread in aitherapy_test."
       },
       "subtasks": [
         {
           "id": "F010-1",
           "name": "Graph assembly + conditional edges",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F010-2",
           "name": "PostgresSaver checkpointer wiring",
-          "status": "planned"
+          "status": "completed"
         }
       ],
-      "notes": "Depends on F002, F003-F007. Runs inside FastAPI process.",
+      "notes": "L1 gate carries its verdict via the schema-valid crisis_verdict channel (langgraph drops non-schema keys); crisis_surface/emergency_notification added to SessionState transient channels for the server.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F011",
