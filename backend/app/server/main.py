@@ -116,6 +116,7 @@ async def voice_endpoint(websocket: WebSocket) -> None:
     input. V0: a single anonymous session (participant "local", session 1)."""
     participant_id = "local"
     session_number = 1
+    await websocket.accept()
     invoker = make_graph_invoker(participant_id, session_number)
     closer = make_course_closer(participant_id, session_number)
     run_voice = build_pipeline(

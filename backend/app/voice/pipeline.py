@@ -124,9 +124,11 @@ class TurnGraphProcessor(FrameProcessor):
 
     async def process_frame(self, frame, direction: FrameDirection) -> None:
         await super().process_frame(frame, direction)
-        # super() handles StartFrame (and pushes it downstream) and system
-        # frames — nothing more to do for those.
+        # StartFrame must be forwarded downstream — super() only marks this
+        # processor started; without the push, downstream services (TTS) never
+        # receive it and reject every frame with "StartFrame not received yet".
         if isinstance(frame, StartFrame):
+            await self.push_frame(frame)
             return
 
         # Session close → fire the post-session course graph (§7.4) async.
