@@ -3,12 +3,12 @@
   "last_updated": "2026-08-24",
   "summary": {
     "total": 15,
-    "completed": 11,
+    "completed": 13,
     "in_progress": 0,
-    "planned": 4,
-    "tests_passing": 103,
+    "planned": 2,
+    "tests_passing": 139,
     "tests_failing": 0,
-    "tests_missing": 4
+    "tests_missing": 2
   },
   "features": [
     {
@@ -344,64 +344,64 @@
       "id": "F012",
       "name": "Voice provider services",
       "description": "app/voice/services/{sarvam_stt,rumik_tts,bulbul_tts}.py — STTProvider/TTSProvider async streaming protocols (impl §7.9). Sarvam Saaras STT, Rumik Mulberry/Muga TTS, Sarvam Bulbul TTS. TTS implementations own script normalization at the TTS boundary (romanized → Devanagari for Mulberry, §2.2) and phase prosody directives merged into the TTS call (§7.7).",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/voice/services",
       "design_doc": "docs/implementation.md#79-provider-interfaces",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Interface conformance; script-normalization correctness (Romanized Hindi → Devanagari); provider selection via config only."
+        "status": "passing",
+        "files": ["backend/tests/test_voice_services.py"],
+        "notes": "24 tests: protocol conformance; script normalization (known romanized→Devanagari, English passthrough); provider error-degradation; prosody→description for Mulberry; factory selection + unknown→ValueError."
       },
       "subtasks": [
         {
           "id": "F012-1",
           "name": "STTProvider protocol + Sarvam STT",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F012-2",
           "name": "TTSProvider protocol + Rumik Mulberry/Muga",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F012-3",
           "name": "Bulbul TTS + script normalization at boundary",
-          "status": "planned"
+          "status": "completed"
         }
       ],
-      "notes": "Providers are eval-time swappable — never a default. Requires keys in .env.",
+      "notes": "Providers are eval-time swappable — never a default. Rumik mocked-only (paused, no key); Sarvam keys live in .env.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F013",
       "name": "Barge-in / interruption capture",
       "description": "app/voice/interruptions.py — patient speech during TTS playback cancels the stream instantly; captures truncated AI text + phase + minute → interruption_event appended to the next turn's SessionState.interruption_events (impl §7.7, methodology §6.8).",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/voice/interruptions.py",
       "design_doc": "docs/implementation.md#77-voice-loop-integration",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Capture produces schema-valid interruption_event; model never restarts the interrupted sentence."
+        "status": "passing",
+        "files": ["backend/tests/test_interruptions.py"],
+        "notes": "12 tests: schema-valid capture; append-don't-wipe; truncated-text clamping; interruption_history_ok ceiling."
       },
       "subtasks": [
         {
           "id": "F013-1",
           "name": "Cancellation + truncated-text capture",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F013-2",
           "name": "interruption_event → next-turn state",
-          "status": "planned"
+          "status": "completed"
         }
       ],
-      "notes": "Owned by voice layer, not the graph.",
+      "notes": "Owned by voice layer, not the graph. Cancellation itself is F011/Pipecat; this module is the pure capture→state logic.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F014",
