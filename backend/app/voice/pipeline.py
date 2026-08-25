@@ -32,6 +32,7 @@ from pipecat.frames.frames import (
     VADParamsUpdateFrame,
 )
 from pipecat.pipeline.pipeline import Pipeline
+from pipecat.pipeline.worker import PipelineParams, PipelineWorker
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 from pipecat.services.sarvam.stt import SarvamSTTService
 from pipecat.services.sarvam.tts import SarvamTTSService
@@ -39,10 +40,13 @@ from pipecat.transports.websocket.fastapi import (
     FastAPIWebsocketParams,
     FastAPIWebsocketTransport,
 )
+from pipecat.utils.asyncio.task_manager import TaskManager
 
 from app.config.settings import settings
 from app.graph.state import SessionState, new_session_state
+from app.logger import logger
 from app.voice.interruptions import append_interruption, capture_interruption, truncated_ai_text
+from app.voice.serialization import BrowserFrameSerializer
 from app.voice.timers import vad_threshold_for_phase
 
 # Graph invoker: (thread_id, state) -> updated state. The server (F015) injects
@@ -66,7 +70,12 @@ async def run_turn(
 
 
 def build_transport(websocket) -> FastAPIWebsocketTransport:
-    """The `/ws` Pipecat websocket transport (input+output)."""
+    """The `/ws` Pipecat websocket transport (input+output).
+
+    ``serializer=BrowserFrameSerializer()`` — the transport ignores every
+    message without a serializer, and Pipecat ships only telephony ones. This
+    is what lets the control-surface browser talk to the pipeline.
+    """
     params = FastAPIWebsocketParams(
         audio_in_sample_rate=16000,
         audio_out_sample_rate=24000,
@@ -75,6 +84,7 @@ def build_transport(websocket) -> FastAPIWebsocketTransport:
             sample_rate=16000,
             params=VADParams(stop_secs=vad_threshold_for_phase("landing")),
         ),
+        serializer=BrowserFrameSerializer(),
     )
     return FastAPIWebsocketTransport(websocket, params=params)
 
@@ -165,8 +175,14 @@ def build_pipeline(
     invoker: GraphInvoker,
     thread_id: str,
     on_close: Callable[[SessionState, list[str]], Awaitable[None]] | None = None,
-) -> Pipeline:
-    """Assemble the §7.7 voice pipeline for one websocket connection."""
+) -> Callable[[], Awaitable[None]]:
+    """Assemble the §7.7 voice pipeline for one websocket connection.
+
+    Returns an async ``run()`` callable. Pipecat ≥1.7 removed `Pipeline.run`;
+    the worker is built lazily inside ``run()`` so its `TaskManager` binds to
+    the running event loop. The transport's `on_client_disconnected` handler
+    cancels the worker so ``run()`` returns when the browser disconnects.
+    """
     transport = build_transport(websocket)
     pipeline = Pipeline(
         [
@@ -177,4 +193,15 @@ def build_pipeline(
             transport.output(),
         ]
     )
-    return pipeline
+
+    async def run() -> None:
+        worker = PipelineWorker(pipeline, task_manager=TaskManager())
+
+        @transport.event_handler("on_client_disconnected")
+        async def _on_disconnected(transport, client) -> None:
+            logger.info("voice client disconnected; cancelling pipeline")
+            await worker.cancel()
+
+        await worker.run(params=PipelineParams())
+
+    return run

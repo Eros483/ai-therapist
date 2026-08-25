@@ -118,7 +118,7 @@ async def voice_endpoint(websocket: WebSocket) -> None:
     session_number = 1
     invoker = make_graph_invoker(participant_id, session_number)
     closer = make_course_closer(participant_id, session_number)
-    pipeline = build_pipeline(
+    run_voice = build_pipeline(
         websocket,
         invoker,
         make_thread_id(participant_id, session_number),
@@ -126,6 +126,6 @@ async def voice_endpoint(websocket: WebSocket) -> None:
     )
     logger.info("voice session start: %s", participant_id)
     try:
-        await pipeline.run(handle_sigint=False)
+        await run_voice()
     except Exception as exc:  # pragma: no cover - runtime surface
         logger.warning("voice session error: %s", exc)

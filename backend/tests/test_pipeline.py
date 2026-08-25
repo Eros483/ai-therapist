@@ -37,8 +37,8 @@ def test_pipeline_constructs():
     def invoker(thread_id, state):
         return {"response": "hello"}
 
-    pipeline = build_pipeline(_FakeWebsocket(), invoker, "participant:test:session:1")
-    assert pipeline is not None
+    run = build_pipeline(_FakeWebsocket(), invoker, "participant:test:session:1")
+    assert callable(run)  # returns the async run() callable (Pipecat 1.7)
 
 
 @pytest.mark.asyncio
