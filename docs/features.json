@@ -3,12 +3,12 @@
   "last_updated": "2026-08-24",
   "summary": {
     "total": 15,
-    "completed": 14,
+    "completed": 15,
     "in_progress": 0,
-    "planned": 1,
-    "tests_passing": 149,
+    "planned": 0,
+    "tests_passing": 153,
     "tests_failing": 0,
-    "tests_missing": 1
+    "tests_missing": 0
   },
   "features": [
     {
@@ -441,30 +441,30 @@
       "id": "F015",
       "name": "Server (FastAPI control surface + /ws)",
       "description": "app/server/main.py + static/ — single FastAPI process serving the minimal static control-surface page (crisis resources + session controls + memory controls) and the /ws Pipecat voice endpoint. No REST /api/v1/, no text-chat mode. Runs turn-graph invocations and the voice loop.",
-      "status": "planned",
+      "status": "completed",
       "priority": "medium",
       "module": "backend/app/server",
       "design_doc": "docs/implementation.md#72-process-model",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Control surface serves crisis resources; /ws endpoint wires Pipecat; no conversational text mode."
+        "status": "passing",
+        "files": ["backend/tests/test_server.py"],
+        "notes": "4 tests: control surface serves crisis resources (helpline from settings); /health; POST /participant/{id}/delete calls delete_participant; make_graph_invoker runs the turn graph. make dev boots — verified against live Postgres."
       },
       "subtasks": [
         {
           "id": "F015-1",
           "name": "FastAPI app + /ws endpoint",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F015-2",
           "name": "Static control-surface page",
-          "status": "planned"
+          "status": "completed"
         }
       ],
-      "notes": "Depends on F010, F011, F014.",
+      "notes": "No REST /api/v1/, no text-chat mode. /ws wires build_pipeline + graph invoker + post-session course closer.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     }
   ]
 }

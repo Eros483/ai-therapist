@@ -19,11 +19,12 @@ Live-audio verification (endpointing behaviour, barge-in, TTS prosody) is a
 `make dev` + browser-mic exercise — this module only assembles.
 """
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.audio.vad.vad_analyzer import VADParams
 from pipecat.frames.frames import (
+    EndFrame,
     StartFrame,
     TextFrame,
     UserStartedSpeakingFrame,
@@ -46,10 +47,10 @@ from app.voice.timers import vad_threshold_for_phase
 
 # Graph invoker: (thread_id, state) -> updated state. The server (F015) injects
 # a real one owning the checkpointer context; the default echoes for standalone.
-GraphInvoker = Callable[[str, SessionState], SessionState]
+GraphInvoker = Callable[[str, SessionState], Awaitable[SessionState]]
 
 
-def run_turn(
+async def run_turn(
     state: SessionState, invoker: GraphInvoker, thread_id: str
 ) -> tuple[SessionState, str, str]:
     """One graph turn: transcript in state → updated state + response + phase.
@@ -57,7 +58,7 @@ def run_turn(
     Pure except for the injected invoker; the processor and the server both use
     this, and it's the unit-testable heart of the bridge.
     """
-    result = invoker(thread_id, state)
+    result = await invoker(thread_id, state)
     updated = {**state, **result}
     response = updated.get("response") or ""
     phase = updated.get("phase", "landing")
@@ -97,12 +98,18 @@ class TurnGraphProcessor(FrameProcessor):
     next turn's `interruption_events` (F013).
     """
 
-    def __init__(self, invoker: GraphInvoker, thread_id: str) -> None:
+    def __init__(
+        self,
+        invoker: GraphInvoker,
+        thread_id: str,
+        on_close: Callable[[SessionState, list[str]], Awaitable[None]] | None = None,
+    ) -> None:
         super().__init__()
         self._invoker = invoker
         self._thread_id = thread_id
+        self._on_close = on_close
         self._state: SessionState = new_session_state()
-        self._checkin_fired = False
+        self._transcript: list[str] = []
         self._phase = "landing"
 
     async def process_frame(self, frame, direction: FrameDirection) -> None:
@@ -110,6 +117,13 @@ class TurnGraphProcessor(FrameProcessor):
         # super() handles StartFrame (and pushes it downstream) and system
         # frames — nothing more to do for those.
         if isinstance(frame, StartFrame):
+            return
+
+        # Session close → fire the post-session course graph (§7.4) async.
+        if isinstance(frame, EndFrame):
+            await self.push_frame(frame)
+            if self._on_close is not None:
+                await self._on_close(self._state, list(self._transcript))
             return
 
         # Barge-in: patient spoke during TTS playback — capture it (F013).
@@ -130,7 +144,8 @@ class TurnGraphProcessor(FrameProcessor):
 
         # Final STT transcript → one turn-graph invocation → response → TTS.
         if isinstance(frame, TextFrame) and getattr(frame, "text", ""):
-            self._state, response, phase = run_turn(
+            self._transcript.append(frame.text)
+            self._state, response, phase = await run_turn(
                 {**self._state, "patient_utterance": frame.text}, self._invoker, self._thread_id
             )
             # Phase change → update the turn-end VAD threshold (§7.7).
@@ -145,14 +160,19 @@ class TurnGraphProcessor(FrameProcessor):
         await self.push_frame(frame)
 
 
-def build_pipeline(websocket, invoker: GraphInvoker, thread_id: str) -> Pipeline:
+def build_pipeline(
+    websocket,
+    invoker: GraphInvoker,
+    thread_id: str,
+    on_close: Callable[[SessionState, list[str]], Awaitable[None]] | None = None,
+) -> Pipeline:
     """Assemble the §7.7 voice pipeline for one websocket connection."""
     transport = build_transport(websocket)
     pipeline = Pipeline(
         [
             transport.input(),
             build_stt(),
-            TurnGraphProcessor(invoker, thread_id),
+            TurnGraphProcessor(invoker, thread_id, on_close=on_close),
             build_tts(),
             transport.output(),
         ]

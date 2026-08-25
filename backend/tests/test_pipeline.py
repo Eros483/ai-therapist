@@ -48,12 +48,12 @@ async def test_run_turn_invokes_graph():
 
     calls = []
 
-    def invoker(thread_id, state):
+    async def invoker(thread_id, state):
         calls.append((thread_id, state["patient_utterance"]))
         return {"response": "namaste", "phase": "deepening"}
 
     state = new_session_state(patient_utterance="mujhe aaj bahut ajeeb lag raha hai")
-    updated, response, phase = run_turn(state, invoker, "participant:t:session:1")
+    updated, response, phase = await run_turn(state, invoker, "participant:t:session:1")
 
     assert calls == [("participant:t:session:1", "mujhe aaj bahut ajeeb lag raha hai")]
     assert response == "namaste"

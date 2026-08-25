@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ai-therapist — control surface</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
+  h1 { font-size: 1.3rem; }
+  .card { border: 1px solid #8884; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  .big { font-size: 1.5rem; font-weight: 600; }
+  a { color: inherit; }
+  button { font: inherit; padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer; }
+  .muted { opacity: 0.7; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+  <h1>ai-therapist</h1>
+  <p class="muted">Voice-only conversation. The voice session runs on <code>/ws</code>.</p>
+
+  <div class="card">
+    <h2>If you are in crisis</h2>
+    <p>You do not have to be alone right now. Help is available, in your language, 24&times;7:</p>
+    <p class="big">{{HELPLINE}}</p>
+    <p>
+      Tele-MANAS (India) — toll-free national tele-mental-health service.
+      <a href="{{WEBSITE}}" target="_blank" rel="noopener">{{WEBSITE}}</a>
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Session</h2>
+    <p class="muted">Connect your microphone and open the voice session. The therapist mirrors your language — English, Hinglish, or Hindi.</p>
+    <p id="session-status" class="muted">No session running.</p>
+  </div>
+
+  <div class="card">
+    <h2>Memory</h2>
+    <p class="muted">You can delete your session history at any time. This removes the session and course records for the current participant.</p>
+    <form id="delete-form">
+      <label for="participant">Participant ID</label>
+      <input id="participant" name="participant" value="local" required>
+      <button type="submit">Delete my history</button>
+    </form>
+    <p id="delete-result" class="muted"></p>
+  </div>
+
+<script>
+  const status = document.getElementById('session-status');
+  const form = document.getElementById('delete-form');
+  const result = document.getElementById('delete-result');
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const pid = document.getElementById('participant').value.trim();
+    result.textContent = 'deleting…';
+    try {
+      const res = await fetch(`/participant/${encodeURIComponent(pid)}/delete`, { method: 'POST' });
+      const body = await res.json();
+      result.textContent = res.ok ? `Deleted history for ${body.participant_id}.` : `Error: ${body.detail ?? res.status}`;
+    } catch (err) {
+      result.textContent = `Error: ${err}`;
+    }
+  });
+</script>
+</body>
+</html>
