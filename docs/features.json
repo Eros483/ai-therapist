@@ -3,12 +3,12 @@
   "last_updated": "2026-08-24",
   "summary": {
     "total": 15,
-    "completed": 13,
+    "completed": 14,
     "in_progress": 0,
-    "planned": 2,
-    "tests_passing": 139,
+    "planned": 1,
+    "tests_passing": 149,
     "tests_failing": 0,
-    "tests_missing": 2
+    "tests_missing": 1
   },
   "features": [
     {
@@ -315,30 +315,30 @@
       "id": "F011",
       "name": "Voice pipeline (Pipecat)",
       "description": "app/voice/pipeline.py + timers.py — Pipecat pipeline (websocket transport) + silero VAD, per impl §7.7. Two distinct timers: phase-dependent turn-end VAD threshold (Deepening > Landing) vs the 90-second silence soft check-in (one utterance, never repeated). Stream-scoped; owns cancellation on barge-in.",
-      "status": "planned",
+      "status": "completed",
       "priority": "high",
       "module": "backend/app/voice",
       "design_doc": "docs/implementation.md#77-voice-loop-integration",
       "tests": {
-        "status": "missing",
-        "files": [],
-        "notes": "Timer logic as pure functions (phase → VAD threshold); silence check-in fires once; timers never conflated."
+        "status": "passing",
+        "files": ["backend/tests/test_timers.py", "backend/tests/test_pipeline.py"],
+        "notes": "10 tests: phase-dependent VAD threshold (Deepening > Landing); 90s check-in fires once; prosody directive map; transport/services/pipeline construct; run_turn bridge invokes graph."
       },
       "subtasks": [
         {
           "id": "F011-1",
           "name": "Pipeline assembly + websocket transport",
-          "status": "planned"
+          "status": "completed"
         },
         {
           "id": "F011-2",
           "name": "timers.py (turn-end VAD vs 90s check-in)",
-          "status": "planned"
+          "status": "completed"
         }
       ],
-      "notes": "Pipecat may need system audio deps (check docs).",
+      "notes": "Live-audio verification (endpointing, barge-in, prosody) is a make dev + browser-mic exercise. VAD threshold updates ride VADParamsUpdateFrame on phase change.",
       "added": "2026-08-24",
-      "completed": null
+      "completed": "2026-08-24"
     },
     {
       "id": "F012",
