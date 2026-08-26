@@ -48,9 +48,17 @@ flowchart TD
         TG1["L1 safety lexicon (pure code, <1ms)"]
         TG2{"hit?"}
         TG3["parallel: L2 safety gate · register · affect · state extraction"]
-        TG4["phase agent [session.phase] — landing · opening · deepening · meaning · closing (5 nodes, scoped prompt + techniques)"]
+        TG4{"session.phase?"}
         TG5["CRISIS NODE"]
         TG6["emergency contact (minimal metadata)"]
+
+        subgraph PA["PHASE AGENTS (scoped prompt + technique subset)"]
+            PA1["landing"]
+            PA2["opening"]
+            PA3["deepening"]
+            PA4["meaning"]
+            PA5["closing"]
+        end
     end
 
     subgraph CG["COURSE GRAPH (LangGraph, async post-session)"]
@@ -71,7 +79,16 @@ flowchart TD
     TG2 -->|"hit"| TG5
     TG2 -->|"miss"| TG3
     TG3 -->|"L2-safe ∧ extraction done"| TG4
-    TG4 -->|"response tokens"| VL
+    TG4 -->|"landing"| PA1
+    TG4 -->|"opening"| PA2
+    TG4 -->|"deepening"| PA3
+    TG4 -->|"meaning"| PA4
+    TG4 -->|"closing"| PA5
+    PA1 -->|"response tokens"| VL
+    PA2 -->|"response tokens"| VL
+    PA3 -->|"response tokens"| VL
+    PA4 -->|"response tokens"| VL
+    PA5 -->|"response tokens"| VL
     TG5 --> TG6
 
     VL -->|"session close"| CG1
